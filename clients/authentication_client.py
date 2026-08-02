@@ -3,42 +3,98 @@ from typing import TypedDict
 from httpx import Response
 
 from clients.api_client import APIClient
+from clients.private_http_builder import AuthenticationUserDict, get_private_http_client
 
 
-class LoginRequestDict(TypedDict):
+class GetCoursesQueryDict(TypedDict):
     """
-    Описание структуры запроса на аутентификацию.
+    Описание структуры запроса на получение списка курсов.
     """
-    email: str
-    password: str
+    userId: str
 
 
-class RefreshRequestDict(TypedDict):
+class CreateCourseRequestDict(TypedDict):
     """
-    Описание структуры запроса для обновления токена.
+    Описание структуры запроса на создание курса.
     """
-    refreshToken: str  # Название ключа совпадает с API
+    title: str
+    maxScore: int
+    minScore: int
+    description: str
+    estimatedTime: str
+    previewFileId: str
+    createdByUserId: str
 
 
-class AuthenticationClient(APIClient):
+class UpdateCourseRequestDict(TypedDict):
     """
-    Клиент для работы с /api/v1/authentication
+    Описание структуры запроса на обновление курса.
+    """
+    title: str | None
+    maxScore: int | None
+    minScore: int | None
+    description: str | None
+    estimatedTime: str | None
+
+
+class CoursesClient(APIClient):
+    """
+    Клиент для работы с /api/v1/courses
     """
 
-    def login_api(self, request: LoginRequestDict) -> Response:
+    def get_courses_api(self, query: GetCoursesQueryDict) -> Response:
         """
-        Метод выполняет аутентификацию пользователя.
+        Метод получения списка курсов.
 
-        :param request: Словарь с email и password.
+        :param query: Словарь с userId.
         :return: Ответ от сервера в виде объекта httpx.Response
         """
-        return self.post("/api/v1/authentication/login", json=request)
+        return self.get("/api/v1/courses", params=query)
 
-    def refresh_api(self, request: RefreshRequestDict) -> Response:
+    def get_course_api(self, course_id: str) -> Response:
         """
-        Метод обновляет токен авторизации.
+        Метод получения курса.
 
-        :param request: Словарь с refreshToken.
+        :param course_id: Идентификатор курса.
         :return: Ответ от сервера в виде объекта httpx.Response
         """
-        return self.post("/api/v1/authentication/refresh", json=request)
+        return self.get(f"/api/v1/courses/{course_id}")
+
+    def create_course_api(self, request: CreateCourseRequestDict) -> Response:
+        """
+        Метод создания курса.
+
+        :param request: Словарь с title, maxScore, minScore, description, estimatedTime,
+        previewFileId, createdByUserId.
+        :return: Ответ от сервера в виде объекта httpx.Response
+        """
+        return self.post("/api/v1/courses", json=request)
+
+    def update_course_api(self, course_id: str, request: UpdateCourseRequestDict) -> Response:
+        """
+        Метод обновления курса.
+
+        :param course_id: Идентификатор курса.
+        :param request: Словарь с title, maxScore, minScore, description, estimatedTime.
+        :return: Ответ от сервера в виде объекта httpx.Response
+        """
+        return self.patch(f"/api/v1/courses/{course_id}", json=request)
+
+    def delete_course_api(self, course_id: str) -> Response:
+        """
+        Метод удаления курса.
+
+        :param course_id: Идентификатор курса.
+        :return: Ответ от сервера в виде объекта httpx.Response
+        """
+        return self.delete(f"/api/v1/courses/{course_id}")
+
+
+# Добавляем builder для CoursesClient
+def get_courses_client(user: AuthenticationUserDict) -> CoursesClient:
+    """
+    Функция создаёт экземпляр CoursesClient с уже настроенным HTTP-клиентом.
+
+    :return: Готовый к использованию CoursesClient.
+    """
+    return CoursesClient(client=get_private_http_client(user))
